@@ -3,12 +3,10 @@ import matplotlib as mpl
 
 
 class square:
-    def __init__(self, ad_size, ring_width):
-        self.s = f"""// Square
-        ad_size := {ad_size:.0f}e-9
-        ring_width := {ring_width:.0f}e-9
-        inner_geom := rect(ad_size,ad_size)
-        outer_geom := rect(ad_size + ring_width * 2,ad_size + ring_width * 2)
+    def __init__(self, adl):
+        self.s = f"""// Square Antidot
+        inner_geom := rect({adl.ad_size:.0f}e-9,{adl.ad_size:.0f}e-9)
+        outer_geom := rect({adl.ad_size+adl.ring_width*2:.0f}e-9,{adl.ad_size+adl.ring_width*2:.0f}e-9)
         """
 
     def get_patch(self, center_x, center_y, ad_size):
@@ -18,12 +16,10 @@ class square:
 
 
 class diamond:
-    def __init__(self, ad_size, ring_width):
-        self.s = f"""// Diamond
-        ad_size := {ad_size:.0f}e-9
-        ring_width := {ring_width:.0f}e-9
-        inner_geom := rect(ad_size,ad_size).RotZ(pi/4)
-        outer_geom := rect(ad_size + ring_width * 2,ad_size + ring_width * 2).RotZ(pi/4)
+    def __init__(self, adl):
+        self.s = f"""// Diamond Antidot
+        inner_geom := rect({adl.ad_size:.0f}e-9,{adl.ad_size:.0f}e-9).RotZ(pi/4)
+        outer_geom := rect({adl.ad_size+adl.ring_width*2:.0f}e-9,{adl.ad_size+adl.ring_width*2:.0f}e-9).RotZ(pi/4)
         """
 
     def get_patch(self, center_x, center_y, ad_size):
@@ -39,12 +35,10 @@ class diamond:
 
 
 class circle:
-    def __init__(self, ad_size, ring_width):
-        self.s = f"""// Circle
-        ad_size := {ad_size:.0f}e-9
-        ring_width := {ring_width:.0f}e-9
-        inner_geom := cylinder(ad_size,Nz*dz)
-        outer_geom := cylinder(ad_size + ring_width * 2,Nz*dz)
+    def __init__(self, adl):
+        self.s = f"""// Circle Antidot
+        inner_geom := cylinder({adl.ad_size:.0f}e-9,{adl.dz*adl._Nz:.0f}e-9)
+        outer_geom := cylinder({adl.ad_size+adl.ring_width*2:.0f}e-9,{adl.dz*adl._Nz:.0f}e-9)
         """
 
     def get_patch(self, center_x, center_y, ad_size):
@@ -52,10 +46,10 @@ class circle:
 
 
 class triangle:
-    def __init__(self, ad_size, ring_width):
-        self.s = f"""// Triangle
-        ad_size := {ad_size:.0f}e-9
-        ring_width := {ring_width:.0f}e-9
+    def __init__(self, adl):
+        self.s = f"""// Triangle Antidot
+        ad_size := {adl.ad_size:.0f}e-9
+        ring_width := {adl.ring_width:.0f}e-9
         ad_size_outer := ad_size + ring_width * 2
         rec_right := rect(ad_size, ad_size * 2).RotZ(pi/6).transl(3/4*ad_size,(2-sqrt(3))*ad_size/4,0)
         rec_left := rect(ad_size, ad_size * 2).RotZ(-pi/6).transl(-3/4*ad_size,(2-sqrt(3))*ad_size/4,0)
