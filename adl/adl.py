@@ -2,6 +2,7 @@ import inspect
 
 from matplotlib import pyplot as plt
 import matplotlib as mpl
+import numpy as np
 
 from . import antidot
 from . import lattice
@@ -24,8 +25,10 @@ lattices = {
 class adl:
     def __init__(
         self,
-        a=100,
-        ad=40,
+        lattice_param=100,
+        lattice_param2=100,
+        ad_size=40,
+        ad_size2=40,
         ring=10,
         lattice="square",
         antidot="square",
@@ -33,13 +36,28 @@ class adl:
         dy=1,
         dz=13.2,
         pbc=32,
-        b=None,
-        **kwargs,
+        angle=10,
+        B0=0.223,
+        amps="B0/100",
+        f_cut=25e9,
+        delay="2.5 / f_cut",
+        t_sampl="0.5 / (f_cut * 1.4)",
+        maxerr=0.25e-7,
+        minimizerstop=5e-6,
+        maxdt="t_sampl/100",
+        msat=810e3,
+        aex=13e-12,
+        ku1=453195,
+        anisu="vector(0,0,1)",
+        alpha=0.000000001,
+        gammall=187e9,
+        m="uniform(0, 0, 1)",
     ):
         # input parameters, can be changed
-        self.a = a
-        self.b = b
-        self.ad_size = ad
+        self.lattice_param = lattice_param
+        self.lattice_param2 = lattice_param2
+        self.ad_size = ad_size
+        self.ad_size2 = ad_size2
         self.ring_width = ring
         self.lattice_name = lattice
         self.antidot_name = antidot
@@ -47,13 +65,28 @@ class adl:
         self.dy = dy
         self.dz = dz
         self.PBC = pbc
-        self.kwargs = kwargs
+        self.angle = angle
+        self.B0 = B0
+        self.amps = amps
+        self.f_cut = f_cut
+        self.delay = delay
+        self.t_sampl = t_sampl
+        self.maxerr = maxerr
+        self.minimizerstop = minimizerstop
+        self.maxdt = maxdt
+        self.msat = msat
+        self.aex = aex
+        self.ku1 = ku1
+        self.anisu = anisu
+        self.alpha = alpha
+        self.gammall = gammall
+        self.m = m
 
         self.make()
 
     def make(self):
         self._s = ""
-        self._lattice = lattices[self.lattice_name](self.a, self.b)
+        self._lattice = lattices[self.lattice_name](self)
         self._Nx = int(self._lattice.xsize / self.dx)
         self._Ny = int(self._lattice.ysize / self.dy)
         self._Nz = 1
@@ -74,35 +107,9 @@ class adl:
             with open(path, "w") as f:
                 f.writelines(self._s)
         else:
-            name = f"{self.lattice_name}_lat_{self.antidot_name}_ad_ring_{self.ring_width}nm_ad_{self.ad_size}nm_a_{self.a}nm"
+            name = f"{self.lattice_name}_lat_{self.antidot_name}_ad_ring_{self.ring_width}nm_ad_{self.ad_size}nm_a_{self.lattice_param}nm"
             with open(f"{path}/{name}.mx3", "w") as f:
                 f.writelines(self._s)
-
-    def preview(self):
-        figshape = (3, self._lattice.ysize / self._lattice.xsize * 3)
-        fig, ax = plt.subplots(figsize=figshape)
-        ax.set_xlim(0, self._lattice.xsize)
-        ax.set_ylim(0, self._lattice.ysize)
-        ax.patches.append(
-            mpl.patches.Rectangle(
-                (0, 0),
-                self._lattice.xsize,
-                self._lattice.ysize,
-                color="k",
-                transform=ax.transData,
-            )
-        )
-        for x, y in self._lattice.coordinates:
-            patch = self._antidot.get_patch(x, y, self.ad_size + self.ring_width)
-            patch.set(transform=ax.transData, lw=0, facecolor="gray")
-            ax.add_patch(patch)
-        for x, y in self._lattice.coordinates:
-            patch = self._antidot.get_patch(x, y, self.ad_size)
-            patch.set(transform=ax.transData, lw=0, facecolor="w")
-            ax.add_patch(patch)
-        ax.set(xlabel="x (nm)", ylabel="y (nm)")
-        ax.tick_params(which="both", direction="out")
-        fig.tight_layout()
 
     def pre(self):
         self._s += f"""
@@ -110,7 +117,7 @@ class adl:
         // antidot:             {self.antidot_name}
         // antidot size:        {self.ad_size} nm
         // ring width:          {self.ring_width} nm
-        // lattice parameter:   {self.a} nm 
+        // lattice parameter:   {self.lattice_param} nm 
         
         setgridsize({self._Nx},{self._Ny}, {self._Nz})
         setcellsize({self.dx:.5f}e-9, {self.dy:.5f}e-9, {self.dz}e-9)
@@ -119,13 +126,13 @@ class adl:
 
         // CoPd stripe
         adl := Universe()
-        m = uniform(0, 0, 1)
-        Msat = 810e3
-        aex = 13e-12
-        Ku1 = 453195
-        anisU = vector(0, 0, 1)
-        alpha = 0.000000001
-        gammaLL = 187e9
+        m = {self.m}
+        msat = {self.msat}
+        aex = {self.aex}
+        ku1 = {self.ku1}
+        anisu = {self.anisu}
+        alpha = {self.alpha}
+        gammall = {self.gammall}
 
         """
 
@@ -161,20 +168,20 @@ class adl:
         setgeom(adl)
         
         // Static Field
-        angle := {self.kwargs.get('angle',"0")} * pi / 180
-        B0 := {self.kwargs.get('B0',"0.223")}
+        angle := {self.angle} * pi / 180
+        B0 := {self.B0}
         B_ext = vector(B0*sin(angle), 0, B0*cos(angle))
 
         // Dynamics Params
-        amps := {self.kwargs.get('amps',"B0 / 100")}
-        f_cut := {self.kwargs.get('f_cut',"25e9")}
-        delay := {self.kwargs.get('delay',"2.5 / f_cut     ")}
-        t_sampl := {self.kwargs.get('t_sampl',"0.5 / (f_cut * 1.4)")}
+        amps := {self.amps}
+        f_cut := {self.f_cut}
+        delay := {self.delay}
+        t_sampl := {self.t_sampl}
 
         // Solver Params
-        maxerr = {self.kwargs.get('maxerr',"0.25e-7")}
-        minimizerStop = {self.kwargs.get('minimizerStop',"5e-6")}
-        maxdt = {self.kwargs.get('maxdt',"t_sampl / 100")}
+        maxerr = {self.maxerr}
+        minimizerstop = {self.minimizerstop}
+        maxdt = {self.maxdt}
 
         // Relaxation
         relax()
@@ -184,6 +191,7 @@ class adl:
         relax()
         tp:=t
         saveas(m,"stable")
+        snapshotas(m,"stable.png")
         
         // Dynamics
         B_ext = vector( B0*sin(angle), 0, amps*sinc(2*pi*f_cut*(t-delay-tp)) + B0*cos(angle))
