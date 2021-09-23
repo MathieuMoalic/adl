@@ -51,12 +51,12 @@ class octagonal_lattice:
         self.coordinates = [
             (0.5 * adl.lattice_param, 0),
             (1.5 * adl.lattice_param, 0),
-            (0.5 * adl.lattice_param, 2 * adl.lattice_param2),
-            (1.5 * adl.lattice_param, 2 * adl.lattice_param2),
-            (0, 0.5 * adl.lattice_param2),
-            (0, 1.5 * adl.lattice_param2),
-            (2 * adl.lattice_param, 0.5 * adl.lattice_param2),
-            (2 * adl.lattice_param, 1.5 * adl.lattice_param2),
+            (0.5 * adl.lattice_param, 2 * adl.lattice_param),
+            (1.5 * adl.lattice_param, 2 * adl.lattice_param),
+            (0, 0.5 * adl.lattice_param),
+            (0, 1.5 * adl.lattice_param),
+            (2 * adl.lattice_param, 0.5 * adl.lattice_param),
+            (2 * adl.lattice_param, 1.5 * adl.lattice_param),
         ]
         self.xsize = 2 * adl.lattice_param
-        self.ysize = 2 * adl.lattice_param2
+        self.ysize = 2 * adl.lattice_param

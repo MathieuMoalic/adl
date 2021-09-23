@@ -25,13 +25,13 @@ lattices = {
 class adl:
     def __init__(
         self,
-        lattice_param=100,
-        lattice_param2=100,
-        ad_size=40,
-        ad_size2=40,
-        ring=10,
-        lattice="square",
-        antidot="square",
+        lattice_param,
+        ad_size,
+        ring,
+        lattice,
+        antidot,
+        lattice_param2=0,
+        ad_size2=0,
         dx=1,
         dy=1,
         dz=13.2,
@@ -39,28 +39,38 @@ class adl:
         angle=10,
         B0=0.223,
         amps="B0/100",
-        f_cut=25e9,
+        f_cut="25e9",
         delay="2.5 / f_cut",
         t_sampl="0.5 / (f_cut * 1.4)",
-        maxerr=0.25e-7,
-        minimizerstop=5e-6,
+        maxerr="0.25e-7",
+        minimizerstop="5e-6",
         maxdt="t_sampl/100",
-        msat=810e3,
-        aex=13e-12,
-        ku1=453195,
+        msat="810e3",
+        aex="13e-12",
+        ku1="453195",
         anisu="vector(0,0,1)",
-        alpha=0.000000001,
-        gammall=187e9,
+        alpha="0.000000001",
+        gammall="187e9",
         m="uniform(0, 0, 1)",
+        autosave="autosave(m,t_sampl)",
+        bextx="B0*sin(angle)",
+        bexty="0",
+        bextz="amps*sinc(2*pi*f_cut*(t-delay-tp)) + B0*cos(angle)",
     ):
         # input parameters, can be changed
         self.lattice_param = lattice_param
-        self.lattice_param2 = lattice_param2
         self.ad_size = ad_size
-        self.ad_size2 = ad_size2
         self.ring_width = ring
         self.lattice_name = lattice
         self.antidot_name = antidot
+        if lattice == "rectangular":
+            if lattice_param2 == 0:
+                raise ValueError(
+                    "'lattice_param2' is needed when using a rectangular lattice"
+                )
+            else:
+                self.lattice_param2 = lattice_param2
+        self.ad_size2 = ad_size2
         self.dx = dx
         self.dy = dy
         self.dz = dz
@@ -81,6 +91,10 @@ class adl:
         self.alpha = alpha
         self.gammall = gammall
         self.m = m
+        self.autosave = autosave
+        self.bextx = bextx
+        self.bexty = bexty
+        self.bextz = bextz
 
         self.make()
 
@@ -124,7 +138,7 @@ class adl:
         setPBC({self.PBC}, {self.PBC}, 0)
         edgesmooth=0
 
-        // CoPd stripe
+        // CoPd film
         adl := Universe()
         m = {self.m}
         msat = {self.msat}
@@ -194,9 +208,9 @@ class adl:
         snapshotas(m,"stable.png")
         
         // Dynamics
-        B_ext = vector( B0*sin(angle), 0, amps*sinc(2*pi*f_cut*(t-delay-tp)) + B0*cos(angle))
+        B_ext = vector( B0*sin(angle), amps*sinc(2*pi*f_cut*(t-delay-tp)), B0*cos(angle))
         tableadd(B_ext)
         tableautosave(t_sampl)
-        autosave(m,t_sampl)
+        {self.autosave}
         run(1500 * t_sampl)
         """
