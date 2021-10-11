@@ -3,16 +3,16 @@ import math
 
 class square_lattice:
     def __init__(self, adl):
-        self.coordinates = [(adl.lattice_param / 2, adl.lattice_param / 2)]
         self.xsize = adl.lattice_param
         self.ysize = adl.lattice_param
+        self.coordinates = [(0, 0)]
 
 
 class rectangular_lattice:
     def __init__(self, adl):
-        self.coordinates = [(adl.lattice_param / 2, adl.lattice_param2 / 2)]
         self.xsize = adl.lattice_param
         self.ysize = adl.lattice_param2
+        self.coordinates = [(0, 0)]
 
 
 class honeycomb_lattice:

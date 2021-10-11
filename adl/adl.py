@@ -32,16 +32,16 @@ class adl:
         antidot,
         lattice_param2=0,
         ad_size2=0,
-        dx=1,
-        dy=1,
+        dx=0.75,
+        dy=0.75,
         dz=13.2,
         pbc=32,
-        angle=10,
-        B0=0.223,
-        amps="B0/100",
+        angle="0.0001",
+        B0="0.223",
+        amps="9e-2",
         f_cut="25e9",
-        delay="2.5 / f_cut",
-        t_sampl="0.5 / (f_cut * 1.4)",
+        t0="t + 10/f_cut",
+        t_sampl="0.5 / (f_cut * 1.5)",
         maxerr="0.25e-7",
         minimizerstop="5e-6",
         maxdt="t_sampl/100",
@@ -49,13 +49,17 @@ class adl:
         aex="13e-12",
         ku1="453195",
         anisu="vector(0,0,1)",
-        alpha="0.000000001",
+        alpha="0.02",
         gammall="187e9",
-        m="uniform(0, 0, 1)",
+        m="uniform(1e-5, 1e-5, 1)",
         autosave="autosave(m,t_sampl)",
         bextx="B0*sin(angle)",
         bexty="0",
         bextz="amps*sinc(2*pi*f_cut*(t-delay-tp)) + B0*cos(angle)",
+        edgesmooth=3,
+        trun="1500",
+        static="",
+        dyn="",
     ):
         # input parameters, can be changed
         self.lattice_param = lattice_param
@@ -79,7 +83,6 @@ class adl:
         self.B0 = B0
         self.amps = amps
         self.f_cut = f_cut
-        self.delay = delay
         self.t_sampl = t_sampl
         self.maxerr = maxerr
         self.minimizerstop = minimizerstop
@@ -95,6 +98,11 @@ class adl:
         self.bextx = bextx
         self.bexty = bexty
         self.bextz = bextz
+        self.edgesmooth = edgesmooth
+        self.trun = trun
+        self.t0 = t0
+        self.static = static
+        self.dyn = dyn
 
         self.make()
 
@@ -105,15 +113,16 @@ class adl:
         self._Ny = int(self._lattice.ysize / self.dy)
         self._Nz = 1
         new_nx = self._Nx - self._Nx % 5
-        self.dx = self._Nx / new_nx
+        self.dx = self._Nx / new_nx * self.dx
         self._Nx = new_nx
         new_ny = self._Ny - self._Ny % 5
-        self.dy = self._Ny / new_ny
+        self.dy = self._Ny / new_ny * self.dy
         self._Ny = new_ny
         self._antidot = antidots[self.antidot_name](self)
         self.pre()
         self.geom()
-        self.post()
+        self.add_static()
+        self.add_dyn()
 
     def save(self, path):
         self._s = inspect.cleandoc(self._s)  # removes padding
@@ -127,16 +136,11 @@ class adl:
 
     def pre(self):
         self._s += f"""
-        // lattice:             {self.lattice_name}
-        // antidot:             {self.antidot_name}
-        // antidot size:        {self.ad_size} nm
-        // ring width:          {self.ring_width} nm
-        // lattice parameter:   {self.lattice_param} nm 
-        
-        setgridsize({self._Nx},{self._Ny}, {self._Nz})
-        setcellsize({self.dx:.5f}e-9, {self.dy:.5f}e-9, {self.dz}e-9)
-        setPBC({self.PBC}, {self.PBC}, 0)
-        edgesmooth=0
+        Nx := {self._Nx}
+        Ny := {self._Ny}
+        Nz := {self._Nz}
+        SetMesh(Nx,Ny,Nz,{self.dx:.5f}e-9, {self.dy:.5f}e-9, {self.dz}e-9,{self.PBC}, {self.PBC}, 0)
+        edgesmooth={self.edgesmooth}
 
         // CoPd film
         adl := Universe()
@@ -152,8 +156,6 @@ class adl:
 
     def geom(self):
         self._s += self._antidot.s
-        new_origin_x = self._Nx * self.dx / 2
-        new_origin_y = self._Ny * self.dy / 2
 
         self._s += """
         // Lattice
@@ -163,54 +165,75 @@ class adl:
                 q = ":"
             else:
                 q = ""
-            new_x = f"{(x-new_origin_x):.0f}e-9"
-            new_y = f"{(y-new_origin_y):.0f}e-9"
             self._s += f"""
         // {self.antidot_name.capitalize()} at ({x:.0f}nm,{y:.0f}nm)
-        inner_dot {q}= inner_geom.transl({new_x},{new_y},0)
-        outer_dot {q}= outer_geom.transl({new_x},{new_y},0)
+        inner_dot {q}= inner_geom.transl({x}e-9,{y}e-9,0)
+        outer_dot {q}= outer_geom.transl({x}e-9,{y}e-9,0)
         adl = adl.add(outer_dot).sub(inner_dot)
-        m.setInShape(outer_dot, vortex(1, -1).transl({new_x},{new_y},0))
+        m.setInShape(outer_dot, vortex(1, 1).transl({x}e-9,{y}e-9,0))
         defregion(1, outer_dot)
         Ku1.SetRegion(1, 0)
                     """.replace(
                 ".transl(0e-9,0e-9,0)", ""
             )
 
-    def post(self):
-        self._s += f"""
-        setgeom(adl)
-        
-        // Static Field
-        angle := {self.angle} * pi / 180
-        B0 := {self.B0}
+    def add_static(self):
+        if self.static != "":
+            self._s += self.static
+        else:
+            self._s += f"""
+        // Static
+        angle := 0 * pi / 180
+        B0 := 0.223
         B_ext = vector(B0*sin(angle), 0, B0*cos(angle))
 
-        // Dynamics Params
-        amps := {self.amps}
-        f_cut := {self.f_cut}
-        delay := {self.delay}
-        t_sampl := {self.t_sampl}
-
-        // Solver Params
-        maxerr = {self.maxerr}
-        minimizerstop = {self.minimizerstop}
-        maxdt = {self.maxdt}
-
         // Relaxation
-        relax()
-        run(1e-10)
-        relax()
+        MaxErr = 4e-6
+        minimizerstop = 1e-8
+        RelaxTorqueThreshold = 1e-6
         minimize()
-        relax()
-        tp:=t
         saveas(m,"stable")
         snapshotas(m,"stable.png")
-        
+        """
+
+    def add_dyn(self):
+        if self.dyn != "":
+            self._s += self.dyn
+        else:
+            self._s += f"""
         // Dynamics
-        B_ext = vector( B0*sin(angle), amps*sinc(2*pi*f_cut*(t-delay-tp)), B0*cos(angle))
+        f_cut := 20e9
+        t_sampl := 0.5 / (f_cut * 1.5)
+        amps:= B0/2
+
+        setsolver(5)
+        t0 := t + 10/f_cut
+        maxdt = 1.42e-12
+        mindt = 1e-14
+        maxerr = 1e-7
+
+        Bphi := 10
+        Bvalue := 1.0
+        maskB := newSlice(3, Nx, Ny, Nz)
+        theta := 0.0
+        for x:=0; x<Nx; x++{{
+            for y:=0; y<Ny; y++ {{
+                for z:=0; z<Nz; z++ {{
+                    r := index2coord(x, y, 0)
+                    x2 := r.X()
+                    y2 := r.Y()
+                    theta = atan(y2/x2)*sign(x2)
+                    maskB.set(0, x, y, z, 0)
+                    maskB.set(1, x, y, z, Bvalue*sin(theta))
+                    maskB.set(2, x, y, z, 0)
+                }}
+            }}
+        }}
+
+
+        B_ext.add(mask_MF, amps*sinc(2*pi*f_cut*(t-t0)))
         tableadd(B_ext)
         tableautosave(t_sampl)
-        {self.autosave}
-        run(1500 * t_sampl)
+        autosave(m,t_sampl)
+        run(400 * t_sampl)
         """
