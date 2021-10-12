@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="adl",
-    version="0.1.3",
+    version="0.1.4",
     description="script generator for mumax3 for antidot lattice",
     author="Mathieu Moalic",
     author_email="matmoa@pm.me",
