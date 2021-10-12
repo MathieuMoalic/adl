@@ -77,6 +77,27 @@ class adl:
         else:
             self._s += parms.material
 
+    def add_geom(self, parms):
+        self._s += self._antidot.s
+        for i, (x, y) in enumerate(self._lattice.coordinates):
+            if i == 0:
+                q = ":"
+            else:
+                q = ""
+            self._s += f"""
+        inner_dot {q}= inner_geom.transl({x}e-9,{y}e-9,0)
+        outer_dot {q}= outer_geom.transl({x}e-9,{y}e-9,0)
+        adl = adl.add(outer_dot).sub(inner_dot)
+        m.setInShape(outer_dot, vortex(1, 1).transl({x}e-9,{y}e-9,0))
+        defregion(1, outer_dot)
+        Ku1.SetRegion(1, 0)
+                    """.replace(
+                ".transl(0e-9,0e-9,0)", ""
+            )
+        self._s += """
+        setgeom(adl)
+        """
+
     def add_static(self, parms):
         if parms.static == "":
             self._s += f"""
@@ -137,27 +158,6 @@ class adl:
         """
         else:
             self._s += parms.dynamics
-
-    def add_geom(self, parms):
-        self._s += self._antidot.s
-        for i, (x, y) in enumerate(self._lattice.coordinates):
-            if i == 0:
-                q = ":"
-            else:
-                q = ""
-            self._s += f"""
-        inner_dot {q}= inner_geom.transl({x}e-9,{y}e-9,0)
-        outer_dot {q}= outer_geom.transl({x}e-9,{y}e-9,0)
-        adl = adl.add(outer_dot).sub(inner_dot)
-        m.setInShape(outer_dot, vortex(1, 1).transl({x}e-9,{y}e-9,0))
-        defregion(1, outer_dot)
-        Ku1.SetRegion(1, 0)
-                    """.replace(
-                ".transl(0e-9,0e-9,0)", ""
-            )
-        self._s += """
-        setgeom(adl)
-        """
 
     def save(self, path):
         import time
