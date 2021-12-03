@@ -4,32 +4,31 @@ import matplotlib as mpl
 
 class square:
     def __init__(self, adl):
-
-        self.s = f"""// Square Antidot
-        inner_geom := rect({adl.ad_size:.1f}e-9,{adl.ad_size:.1f}e-9)
-        outer_geom := rect({adl.ad_size+adl.ring*2:.1f}e-9,{adl.ad_size+adl.ring*2:.1f}e-9)
+        self.s = f"""// Geom
+        ad := rect(ad_size,ad_size)
+        ring := rect(ad_size + ring_size * 2,ad_size + ring_size * 2)
         """
 
 
 class diamond:
     def __init__(self, adl):
-        self.s = f"""// Diamond Antidot
-        inner_geom := rect({adl.ad_size:.1f}e-9,{adl.ad_size:.1f}e-9).RotZ(pi/4)
-        outer_geom := rect({adl.ad_size+adl.ring*2:.1f}e-9,{adl.ad_size+adl.ring*2:.1f}e-9).RotZ(pi/4)
+        self.s = f"""// Geom
+        ad := rect(ad_size,ad_size).RotZ(pi/4)
+        ring := rect(ad_size + ring_size * 2,ad_size + ring_size * 2).RotZ(pi/4)
         """
 
 
 class circle:
     def __init__(self, adl):
-        self.s = f"""// Circle Antidot
-        inner_geom := cylinder({adl.ad_size:.1f}e-9,{adl.dz*adl.Nz:.1f}e-9)
-        outer_geom := cylinder({adl.ad_size+adl.ring*2:.1f}e-9,{adl.dz*adl.Nz:.1f}e-9)
+        self.s = f"""// Geom
+        ad := circle(ad_size)
+        ring := circle(ad_size + ring_size * 2)
         """
 
 
 class triangle:
     def __init__(self, adl):
-        self.s = f"""// Equilateral Triangle Antidot
-        inner_geom := triangle({adl.ad_size:.1f}e-9)
-        outer_geom := triangle({adl.ad_size+adl.ring*2:.1f}e-9)
+        self.s = f"""// Geom
+        ad := triangle(ad_size)
+        ring := triangle(ad_size + ring_size * 2)
         """

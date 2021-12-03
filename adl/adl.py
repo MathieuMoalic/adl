@@ -12,6 +12,10 @@ antidots = {
     "circle": antidot.circle,
     "triangle": antidot.triangle,
     "diamond": antidot.diamond,
+    "squ": antidot.square,
+    "cir": antidot.circle,
+    "tri": antidot.triangle,
+    "dia": antidot.diamond,
 }
 lattices = {
     "square": lattice.square_lattice,
@@ -19,6 +23,11 @@ lattices = {
     "rectangular": lattice.rectangular_lattice,
     "honeycomb": lattice.honeycomb_lattice,
     "octagonal": lattice.octagonal_lattice,
+    "squ": lattice.square_lattice,
+    "hex": lattice.hexagonal_lattice,
+    "rec": lattice.rectangular_lattice,
+    "hon": lattice.honeycomb_lattice,
+    "oct": lattice.octagonal_lattice,
 }
 
 
@@ -38,24 +47,40 @@ class adl:
         parms.Nx = int(self._lattice.xsize / parms.dx)
         parms.Ny = int(self._lattice.ysize / parms.dy)
         parms.Nz = 1
-        new_nx = parms.Nx - parms.Nx % 5
+        new_nx = parms.Nx - parms.Nx % 10
         parms.dx = parms.Nx / new_nx * parms.dx
         parms.Nx = new_nx
-        new_ny = parms.Ny - parms.Ny % 5
+        new_ny = parms.Ny - parms.Ny % 10
         parms.dy = parms.Ny / new_ny * parms.dy
         parms.Ny = new_ny
-        self._s += f"""
-        Nx := {parms.Nx}
-        Ny := {parms.Ny}
-        Nz := {parms.Nz}"""
         return parms
 
     def add_mesh(self, parms):
         if parms.mesh == "":
             self._s += f"""
-        SetMesh(Nx,Ny,Nz,{parms.dx:.5f}e-9, {parms.dy:.5f}e-9, {parms.dz}e-9,{parms.PBC}, {parms.PBC}, 0)
+        lattice_param := {parms.lattice_param}e-9
+        ring_size := {parms.ring}e-9
+        ad_size := {parms.ad_size}e-9"""
+            if parms.lattice == "rectangular":
+                self._s += f"""
+        lattice_param2 := {parms.lattice_param2}e-9"""
+            if parms.antidot == "diamond":
+                self._s += f"""
+        ad_size2 := {parms.ad_size2}e-9"""
+
+            self._s += f"""
+        PBC := {parms.PBC}
+        Tx := {parms.Nx*parms.dx:.5f}e-9
+        Ty := {parms.Ny*parms.dy:.5f}e-9
+        Tz := {parms.Nz*parms.dz:.5f}e-9
+        Nx := {parms.Nx}
+        Ny := {parms.Ny}
+        Nz := {parms.Nz}
+        setgridsize(Nx,Ny,Nz)
+        setcellsize(Tx/Nx,Ty/dy,Tz/dz)
+        setpbc(PBC,PBC,0)
         edgesmooth={parms.edgesmooth}
-        """
+            """
         else:
             self._s += parms.mesh
 
@@ -70,32 +95,21 @@ class adl:
         alpha = {parms.alpha}
         gammall = {parms.gammall}
 
-        // Geom
-        adl := Universe()
-        m = {parms.m}
         """
         else:
             self._s += parms.material
 
     def add_geom(self, parms):
         self._s += self._antidot.s
-        for i, (x, y) in enumerate(self._lattice.coordinates):
-            if i == 0:
-                q = ":"
-            else:
-                q = ""
-            self._s += f"""
-        inner_dot {q}= inner_geom.transl({x}e-9,{y}e-9,0)
-        outer_dot {q}= outer_geom.transl({x}e-9,{y}e-9,0)
-        adl = adl.add(outer_dot).sub(inner_dot)
-        m.setInShape(outer_dot, vortex(1, 1).transl({x}e-9,{y}e-9,0))
-        defregion(1, outer_dot)
-        Ku1.SetRegion(1, 0)
-                    """.replace(
-                ".transl(0e-9,0e-9,0)", ""
-            )
-        self._s += """
-        setgeom(adl)
+        self._s += self._lattice.s
+        self._s += f"""
+        bulk := universe().sub(rings).sub(ads)
+        m.setInShape(bulk,uniform(0,0,1))
+        defregion(201,rings)
+        defregion(202,ads)
+        defregion(203,bulk)
+        ku1.setregion(201,0)
+        setgeom(bulk.add(rings).sub(ads))
         """
 
     def add_static(self, parms):
@@ -133,24 +147,28 @@ class adl:
             if parms.Bmask == "":
                 self._s += """
         // Bmask
-        B_mask:=newSlice(3, Nx, Ny, Nz)
-        Bxyz:= 0.0
-        for x:=0; x<Nx; x++{{
-            for y:=0; y<Ny; y++{{
-                for z:=0; z<Nz; z++{{
-                    Bxyz= randNorm()
-                    B_mask.set(0, x, y, z, Bxyz)
-                    B_mask.set(1, x, y, z, Bxyz)
-                    B_mask.set(2, x, y, z, Bxyz)
-                }}
-            }}
-        }}
-        B_ext.add(B_mask, amps*sinc(2*pi*f_cut*(t-t0)))
+        grainSize  := 20e-9  // m
+        randomSeed := 1234567
+        maxRegion  := 30
+        ext_makegrains(grainSize, maxRegion, randomSeed)
+        for i:=4; i<maxRegion+4; i++{
+            b:=0.1*randnorm()*1/f_cut
+            B_ext.setregion(i, vector(B0*sin(angle)+amps*sinc(2*pi*f_cut*(t-t0+b)),amps*sinc(2*pi*f_cut*(t-t0+b)),B0*cos(angle)))
+        }
+        defregion(201,rings)
+        ku1.setregion(201,0)
         """
             else:
+                self._s += """
+        // Bmask"""
                 self._s += parms.Bmask
             self._s += f"""
         // Saving
+        run(20/f_cut)
+        B_ext.RemoveExtraTerms( )
+        B_ext = vector(B0*sin(angle), 0, B0*cos(angle))
+        run(5/f_cut)
+        t = 0
         tableadd(B_ext)
         tableautosave(t_sampl)
         {parms.autosave}
