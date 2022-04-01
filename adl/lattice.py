@@ -23,7 +23,7 @@ class square_lattice:
         self.coordinates = [(0, 0)]
         self.xsize = parms.lattice_param
         self.ysize = parms.lattice_param
-        self.s = f"""
+        self.s = """
         rings := ring
         ads := ad
         m.setinshape(ring,vortex(1,1))
@@ -37,7 +37,7 @@ class rectangular_lattice:
         self.coordinates = [(0, 0)]
         self.xsize = parms.lattice_param
         self.ysize = parms.lattice_param2
-        self.s = f"""
+        self.s = """
         rings := ring
         ads := ad
         m.setinshape(ring,vortex(1,1))
@@ -48,7 +48,7 @@ class hexagonal_lattice:
     def __init__(self, parms):
         self.xsize = parms.lattice_param
         self.ysize = 2 * parms.lattice_param * math.sin(60 * math.pi / 180)
-        self.s = f"""
+        self.s = """
         a1 := lattice_param/4
         a2 := lattice_param * sqrt(3)/4
         """
@@ -65,7 +65,7 @@ class honeycomb_lattice:
     def __init__(self, parms):
         self.xsize = 3 * parms.lattice_param
         self.ysize = 2 * parms.lattice_param * math.sin(60 * math.pi / 180)
-        self.s = f"""
+        self.s = """
         a1 := lattice_param
         a2 := lattice_param * sqrt(3)/2
         """
@@ -84,7 +84,7 @@ class octagonal_lattice:
     def __init__(self, parms):
         self.xsize = parms.lattice_param * (1 + math.sqrt(2))
         self.ysize = parms.lattice_param * (1 + math.sqrt(2))
-        self.s = f"""
+        self.s = """
         // Lattice
         a1 := lattice_param / 2 + lattice_param / sqrt(2)
         a2 := lattice_param / 2

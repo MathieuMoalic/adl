@@ -26,7 +26,8 @@ class parms:
     gammall: str = "187e9"
     # Static
     m: str = "uniform(1e-5, 1e-5, 1)"
-    angle: str = "0.0001"
+    phi: str = "0.0001"
+    theta: str = "0.0001"
     B0: str = "0.223"
     maxerr_s: str = "4e-5"
     minimizerstop: str = "1e-7"
@@ -42,7 +43,7 @@ class parms:
     t_sampl: str = "0.5 / (f_cut * 1.5)"
     Bmask: str = ""
     autosave: str = "autosave(m,t_sampl)"
-    trun: str = "500"
+    trun: str = "1000"
     # Overrides
     mesh: str = ""
     material: str = ""
