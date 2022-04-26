@@ -41,7 +41,7 @@ class adl:
 
     def add_dimensions(self, p: parms):
         def closest_gridsize(size, step):
-            out = [(2 ** i, size / (2 ** i)) for i in range(13)]
+            out = [(2**i, size / (2**i)) for i in range(13)]
             out = [i for i in out if i[1] > 0.7]
             out = [(i[0], abs(i[1] - step)) for i in out]
             out = sorted(out, key=lambda x: x[1])
@@ -148,7 +148,7 @@ class adl:
         maxRegion  := 60
         ext_makegrains(grainSize, maxRegion, randomSeed)
         for i:=0; i<maxRegion; i++{
-            b:=0.1*randnorm()*1/f_cut
+            b:=0.1*rand()*1/f_cut
             B_ext.setregion(i, vector(
                 B0*sin(theta)*cos(phi)+amps*sinc(2*pi*f_cut*(t-t0+b)),
                 B0*sin(theta)*sin(phi)+amps*sinc(2*pi*f_cut*(t-t0+b)),
